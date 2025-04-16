@@ -14,47 +14,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 
 
-class menu {
+class RegistrarCalculadora {
     private val banda1y2Valores = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    private val banda3Valores = listOf(1.0, 10.0, 100.0, 1000.0, 10000.0)
+    private val banda3Valores = listOf(1.0, 10.0, 100.0, 1000.0, 10000.0) // Multiplicadores
     private val toleranciaValores = listOf(0.05, 0.10, 0.20)
 
 
     fun calcularValor(banda1Index: Int, banda2Index: Int, banda3Index: Int): Double {
-        return (banda1y2Valores[banda1Index] * 10 + banda1y2Valores[banda2Index] + banda3Valores
-            [banda3Index])
-    }
-}
-class RegistrarCalculadora {
-    private val banda1y2Valores = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    private val banda3Valores = listOf(1.0, 10.0, 100.0, 1000.0, 10000.0) // Multiplicadores
-    private val toleranciaValores = listOf(0.05, 0.10, 0.20) // 5%, 10%, 20%
 
-    fun calcularValor(banda1Index: Int, banda2Index: Int, banda3Index: Int): Double { //los banda index son la posición (índice) del color seleccionado en una lista de valores predefinidos.
+        if (banda1Index !in 0..9 || banda2Index !in 0..9 || banda3Index !in 0..4) {
+            return 0.0
+        }
+
         return (banda1y2Valores[banda1Index] * 10 + banda1y2Valores[banda2Index]) * banda3Valores[banda3Index]
     }
+
     fun formatearResultado(valor: Double, toleranciaIndex: Int): Pair<String, String> {
-        val tolerancia = toleranciaValores[toleranciaIndex]
+
+        val tolerancia = if (toleranciaIndex in 0..2) toleranciaValores[toleranciaIndex] else 0.05
 
         var valorConvertido = valor
         var unidad = "Ω"
 
-        if(valor >= 1000000){
-            valorConvertido /= 1000000
-            unidad = "MΩ"
-        } else if (valor >= 1000 ){
-            valorConvertido /= 1000
-            unidad = "kΩ"
+        when {
+            valor >= 1000000 -> {
+                valorConvertido /= 1000000
+                unidad = "MΩ"
+            }
+            valor >= 1000 -> {
+                valorConvertido /= 1000
+                unidad = "kΩ"
+            }
         }
 
         val valorFormateado = "%.2f %s".format(valorConvertido, unidad)
-        val toleranciaFormateada = "+%.0f%%".format(tolerancia * 100)
+        val toleranciaFormateada = "±%.0f%%".format(tolerancia * 100)
 
         return Pair(valorFormateado, toleranciaFormateada)
     }
 }
+
 @Composable
-fun calculadoraResistencia(){
+fun CalculadoraResistencia() {
     val context = LocalContext.current
     val calculadora = remember { RegistrarCalculadora() }
 
@@ -63,22 +64,24 @@ fun calculadoraResistencia(){
         Color.Green, Color.Blue, Color(0xFF8A2BE2), Color.Gray, Color.White,
         Color(0xFFFFD700), Color(0xFFC0C0C0)
     )
+
     val colorNombres = listOf(
         "Negro", "Marrón", "Rojo", "Naranja", "Amarillo",
         "Verde", "Azul", "Violeta", "Gris", "Blanco",
         "Dorado", "Plateado", "Ninguno"
     )
+
     var menuBanda1Abierto by remember { mutableStateOf(false) }
     var menuBanda2Abierto by remember { mutableStateOf(false) }
     var menuBanda3Abierto by remember { mutableStateOf(false) }
     var menuToleranciaAbierto by remember { mutableStateOf(false) }
 
-//para los valores seleccionados
     var banda1Index by remember { mutableStateOf(0) }
     var banda2Index by remember { mutableStateOf(0) }
     var banda3Index by remember { mutableStateOf(0) }
     var toleranciaIndex by remember { mutableStateOf(0) }
 
+    // Aca se calcula el valor de la resistencia y formatea el resultado
     val resistorValue = calculadora.calcularValor(banda1Index, banda2Index, banda3Index)
     val (valorFormateado, toleranciaFormateada) = calculadora.formatearResultado(resistorValue, toleranciaIndex)
 
@@ -94,6 +97,8 @@ fun calculadoraResistencia(){
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
+
+        // Para la imagen de la resistencia
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -108,37 +113,34 @@ fun calculadoraResistencia(){
                 .background(Color.LightGray)
             )
 
-            // Banda 1
             Box(modifier = Modifier
                 .width(24.dp)
                 .height(80.dp)
                 .background(colorValores[banda1Index])
             )
-            // Banda 2
+
             Box(modifier = Modifier
                 .width(24.dp)
                 .height(80.dp)
                 .background(colorValores[banda2Index])
             )
 
-            // Banda 3 (multiplicador)
             Box(modifier = Modifier
                 .width(24.dp)
                 .height(80.dp)
                 .background(colorValores[banda3Index])
             )
 
-            // Banda de tolerancia (si es dorado: 10, plateado: 11, ninguno: 0)
             val toleranciaColorIndex = when (toleranciaIndex) {
                 0 -> 10  // Dorado
                 1 -> 11  // Plateado
-                else -> 0  // Ninguno (Negro)
+                else -> 12  // Ninguno (cambiado a índice 12 para "Ninguno")
             }
 
             Box(modifier = Modifier
                 .width(24.dp)
                 .height(80.dp)
-                .background(colorValores[toleranciaColorIndex])
+                .background(if (toleranciaColorIndex < colorValores.size) colorValores[toleranciaColorIndex] else Color.Transparent)
             )
 
             Box(modifier = Modifier
@@ -147,7 +149,8 @@ fun calculadoraResistencia(){
                 .background(Color.LightGray)
             )
         }
-        // Selección de Banda 1
+
+        // Submenu de Banda 1
         Box(modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = { menuBanda1Abierto = true },
@@ -163,7 +166,6 @@ fun calculadoraResistencia(){
                 onDismissRequest = { menuBanda1Abierto = false },
                 modifier = Modifier.width(280.dp)
             ) {
-                // Mostramos solo los colores de 0 a 9 (Negro a Blanco)
                 for (i in 0..9) {
                     DropdownMenuItem(
                         text = { Text(colorNombres[i]) },
@@ -183,7 +185,7 @@ fun calculadoraResistencia(){
             }
         }
 
-        // Selección de Banda 2
+        // Submenu de Banda 2
         Box(modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = { menuBanda2Abierto = true },
@@ -199,7 +201,6 @@ fun calculadoraResistencia(){
                 onDismissRequest = { menuBanda2Abierto = false },
                 modifier = Modifier.width(280.dp)
             ) {
-                // Mostramos solo los colores de 0 a 9 (Negro a Blanco)
                 for (i in 0..9) {
                     DropdownMenuItem(
                         text = { Text(colorNombres[i]) },
@@ -219,7 +220,7 @@ fun calculadoraResistencia(){
             }
         }
 
-        // Selección de Banda 3
+        // Submenu de Banda 3 (multiplicador)
         Box(modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = { menuBanda3Abierto = true },
@@ -235,20 +236,18 @@ fun calculadoraResistencia(){
                 onDismissRequest = { menuBanda3Abierto = false },
                 modifier = Modifier.width(280.dp)
             ) {
-                // Mostramos solo los colores para multiplicadores (Negro a Amarillo)
                 for (i in 0..4) {
+                    val valor = when (i) {
+                        0 -> "×1"
+                        1 -> "×10"
+                        2 -> "×100"
+                        3 -> "×1,000"
+                        4 -> "×10,000"
+                        else -> ""
+                    }
+
                     DropdownMenuItem(
-                        text = {
-                            val valor = when (i) {
-                                0 -> "×1"
-                                1 -> "×10"
-                                2 -> "×100"
-                                3 -> "×1,000"
-                                4 -> "×10,000"
-                                else -> ""
-                            }
-                            Text("${colorNombres[i]} $valor")
-                        },
+                        text = { Text("${colorNombres[i]} $valor") },
                         onClick = {
                             banda3Index = i
                             menuBanda3Abierto = false
@@ -264,7 +263,8 @@ fun calculadoraResistencia(){
                 }
             }
         }
-        // Selección de Tolerancia
+
+        // Submenu de Tolerancia
         Box(modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = { menuToleranciaAbierto = true },
@@ -303,19 +303,20 @@ fun calculadoraResistencia(){
                             val colorIndex = when (index) {
                                 0 -> 10  // Dorado
                                 1 -> 11  // Plateado
-                                else -> 0  // Ninguno (Negro)
+                                else -> 12  // Ninguno
                             }
                             Box(
                                 modifier = Modifier
                                     .size(16.dp)
-                                    .background(colorValores[colorIndex])
+                                    .background(if (colorIndex < colorValores.size) colorValores[colorIndex] else Color.Transparent)
                             )
                         }
                     )
                 }
             }
         }
-        // Resultado
+
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -349,4 +350,3 @@ fun calculadoraResistencia(){
         }
     }
 }
-
